@@ -1,0 +1,29 @@
+# --- DATASETS ---
+data/raw/
+data/processed/
+*.csv
+*.xlsx
+*.json
+
+# --- MODELS ---
+models/
+*.pkl
+*.joblib
+
+# --- NOTEBOOK CHECKPOINTS ---
+**/.ipynb_checkpoints/
+
+# --- PYTHON VENV ---
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# --- STREAMLIT CACHE ---
+.streamlit/
+logs/
+
+# --- SYSTEM FILES ---
+.DS_Store
+Thumbs.db
