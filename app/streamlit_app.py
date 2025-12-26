@@ -6,11 +6,18 @@ import streamlit as st
 
 st.set_page_config(page_title="DemandSense Forecasting", layout="wide")
 
+import os
+
 # ----------------------------
 # LOAD MODEL & DATA
 # ----------------------------
-MODEL_PATH = "../models/walmart_global_rf.pkl"   # <-- UPDATE if needed
-DATA_PATH = "../data/processed/walmart_global_features.csv"
+# Get the directory of the current script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Define paths relative to the script location
+# app/ is a sibling of models/ and data/
+MODEL_PATH = os.path.join(BASE_DIR, "..", "models", "walmart_global_rf.pkl")
+DATA_PATH = os.path.join(BASE_DIR, "..", "data", "processed", "walmart_global_features.csv")
 
 @st.cache_resource
 def load_model():
@@ -46,18 +53,29 @@ st.sidebar.write("Developed with ❤️ by veerat m ")
 store_df = df[df["Store"] == selected_store].copy()
 store_df = store_df.sort_values("Date")
 
+# Currency Conversion Strategy:
+# The model is trained on USD data. We must keep `store_df` in USD for accurate predictions.
+# We will create separate DataFrames/Columns for display purposes in INR.
+USD_TO_INR = 84.0
+
+# Create a display version for the historical plot
+store_df_inr = store_df.copy()
+store_df_inr["Weekly_Sales"] = store_df_inr["Weekly_Sales"] * USD_TO_INR
+
 st.title(f"📈 DemandSense — Store {selected_store} Forecast")
 
 # ----------------------------
 # PLOT HISTORY
 # ----------------------------
-st.subheader("Historical Weekly Sales")
+st.subheader("Historical Weekly Sales (₹)")
 
 fig, ax = plt.subplots(figsize=(12, 4))
-ax.plot(store_df["Date"], store_df["Weekly_Sales"])
-ax.set_title(f"Historical Sales — Store {selected_store}")
+ax.plot(store_df_inr["Date"], store_df_inr["Weekly_Sales"])
+ax.set_title(f"Historical Sales — Store {selected_store} (₹ Rupees)")
 ax.set_xlabel("Date")
-ax.set_ylabel("Weekly Sales")
+ax.set_ylabel("Weekly Sales (₹ Crores)")
+# Format Y-axis to show Crores
+ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'₹{x/1e7:,.2f} Cr'))
 st.pyplot(fig)
 
 # ----------------------------
@@ -139,22 +157,34 @@ def make_forecast(store_df, horizon):
 # ----------------------------
 forecast_df = make_forecast(store_df, horizon)
 
+# Create display version of forecast
+forecast_df_inr = forecast_df.copy()
+forecast_df_inr["Forecast"] = forecast_df_inr["Forecast"] * USD_TO_INR
+
 st.subheader(f"🔮 Forecast for next {horizon} weeks")
 
-st.dataframe(forecast_df)
+# Format the forecast dataframe for better display
+display_df = forecast_df_inr.copy()
+display_df["Forecast"] = display_df["Forecast"].apply(lambda x: f"₹{x/1e7:,.2f} Cr")
+st.dataframe(display_df)
 
 # ----------------------------
 # PLOT FORECAST
 # ----------------------------
 fig2, ax2 = plt.subplots(figsize=(12, 4))
-ax2.plot(store_df["Date"], store_df["Weekly_Sales"], label="History")
-ax2.plot(forecast_df["Date"], forecast_df["Forecast"], label="Forecast", marker="o")
-ax2.set_title(f"Forecast Horizon: {horizon} Weeks — Store {selected_store}")
+# Use store_df_inr for history and forecast_df_inr for forecast
+ax2.plot(store_df_inr["Date"], store_df_inr["Weekly_Sales"], label="History")
+ax2.plot(forecast_df_inr["Date"], forecast_df_inr["Forecast"], label="Forecast", marker="o")
+
+ax2.set_title(f"Forecast Horizon: {horizon} Weeks — Store {selected_store} (in ₹ Rupees)")
+ax2.set_ylabel("Weekly Sales (₹ Crores)")
 ax2.legend()
+# Format Y-axis to show Crores
+ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'₹{x/1e7:,.2f} Cr'))
 st.pyplot(fig2)
 
 # ----------------------------
 # DOWNLOAD BUTTON
 # ----------------------------
-csv = forecast_df.to_csv(index=False).encode()
-st.download_button("Download Forecast CSV", csv, "forecast.csv")
+csv = forecast_df_inr.to_csv(index=False).encode()
+st.download_button("Download Forecast CSV (INR)", csv, "forecast_inr.csv")
