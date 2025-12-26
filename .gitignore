@@ -1,14 +1,14 @@
 # --- DATASETS ---
 data/raw/
-data/processed/
-*.csv
-*.xlsx
-*.json
+# data/processed/
+# *.csv
+# *.xlsx
+# *.json
 
 # --- MODELS ---
-models/
-*.pkl
-*.joblib
+# models/
+# *.pkl
+# *.joblib
 
 # --- NOTEBOOK CHECKPOINTS ---
 **/.ipynb_checkpoints/
